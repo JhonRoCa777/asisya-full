@@ -18,6 +18,9 @@ namespace Infrastructure.Config
             // EMPLOYEE
             CreateMap<EmployeeDTO, EmployeeModel>().ReverseMap();
             CreateMap<EmployeeDTO, EmployeeModel>().ReverseMap();
+
+            // PRODUCT
+            CreateMap<ProductDTO, ProductModel>().ReverseMap();
         }
     }
 }

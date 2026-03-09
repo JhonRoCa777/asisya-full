@@ -17,11 +17,13 @@ namespace Infrastructure.Config
             // Services
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<ISupplierService, SupplierService>();
+            services.AddScoped<IProductService, ProductService>();
 
             // Repository
             services.AddScoped<IEmployeeRepository, EmployeeRepository>();
             services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<ISupplierRepository, SupplierRepository>();
+            services.AddScoped<IProductRepository, ProductRepository>();
 
             return services;
         }
