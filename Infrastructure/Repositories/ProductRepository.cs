@@ -41,6 +41,8 @@ namespace Infrastructure.Repositories
             // Paginación
             var skip = (pageNumber - 1) * pageSize;
             var ModelList = await query
+                .Include(p => p.Supplier)
+                .Include(p => p.Category)
                 .Skip(skip)
                 .Take(pageSize)
                 .ToListAsync();
@@ -56,6 +58,11 @@ namespace Infrastructure.Repositories
 
             var allProducts = new List<ProductModel>();
 
+            // Traer nombres existentes para evitar violar unique constraint
+            var existingNames = new HashSet<string>(
+                await _Context.Products.Select(p => p.ProductName).ToListAsync()
+            );
+
             // Distribuimos los registros entre categorías
             int categoriesCount = categories.Count;
             int rowsPerCategory = EntityRows / categoriesCount;
@@ -66,9 +73,21 @@ namespace Infrastructure.Repositories
                 var categoryProducts = new List<ProductModel>();
                 int targetCount = rowsPerCategory + (remainingRows-- > 0 ? 1 : 0);
 
+                var productNames = new HashSet<string>(existingNames);
+
+                // Faker para generar productos
                 var productFaker = new Faker<ProductModel>()
                     .RuleFor(p => p.ProductId, f => Guid.NewGuid())
-                    .RuleFor(p => p.ProductName, f => f.Commerce.ProductName())
+                    .RuleFor(p => p.ProductName, f =>
+                    {
+                        string name;
+                        do
+                        {
+                            // Genera nombre único combinando Commerce.ProductName + sufijo aleatorio
+                            name = f.Commerce.ProductName() + "-" + f.Random.AlphaNumeric(6);
+                        } while (!productNames.Add(name));
+                        return name;
+                    })
                     .RuleFor(p => p.SupplierId, f => f.PickRandom(suppliers).SupplierId)
                     .RuleFor(p => p.CategoryId, category.CategoryId)
                     .RuleFor(p => p.UnitPrice, f => decimal.Parse(f.Commerce.Price(5, 500)))
@@ -83,30 +102,28 @@ namespace Infrastructure.Repositories
                     .RuleFor(p => p.DeletedAt, (DateTime?)null)
                     .RuleFor(p => p.DeletedBy, Guid.Empty);
 
-                var productNames = new HashSet<string>();
-
+                // Generar productos
                 while (categoryProducts.Count < targetCount)
                 {
                     var product = productFaker.Generate();
-                    if (productNames.Add(product.ProductName))
-                        categoryProducts.Add(product);
+                    categoryProducts.Add(product);
                 }
 
                 allProducts.AddRange(categoryProducts);
             }
 
-            // Inserción masiva con BulkExtensions optimizada para PostgreSQL
+            // Inserción masiva usando BulkExtensions optimizada para PostgreSQL
             await _Context.BulkInsertAsync(allProducts, options =>
             {
                 options.BatchSize = 1000;
                 options.SetOutputIdentity = false;
                 options.UseTempDB = false;
-                options.EnableStreaming = true; // Optimiza COPY de PostgreSQL
+                options.EnableStreaming = true; // optimiza COPY en PostgreSQL
             });
 
             return Result<bool>.Success(true);
         }
-        
+
         public async Task<Result<bool>> DeleteAsync(Guid EntityId, Guid ResponsableId)
         {
             var Result = await FindAsync(EntityId);

@@ -20,7 +20,9 @@ namespace Infrastructure.Config
             CreateMap<EmployeeDTO, EmployeeModel>().ReverseMap();
 
             // PRODUCT
-            CreateMap<ProductDTO, ProductModel>().ReverseMap();
+            CreateMap<ProductModel, ProductDTO>()
+                .ForMember(dest => dest.Supplier, opt => opt.MapFrom(src => src.Supplier.CompanyName))
+                .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category.CategoryName));
         }
     }
 }

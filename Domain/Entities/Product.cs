@@ -26,12 +26,12 @@ namespace Domain.Entities
     public record ProductDTO(
         Guid ProductId,
         string ProductName,
-        int SupplierId,
-        int CategoryId,
+        Guid SupplierId,
+        Guid CategoryId,
         decimal UnitPrice,
         short UnitsInStock,
         short UnitsOnOrder,
-        Supplier? Supplier = null,
-        Category? Category = null
+        string Supplier,
+        string Category
     );
 }
