@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Clonar el repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Configurar .NET
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '9.0.x'
+
+      # Construir la imagen Docker desde la carpeta Infrastructure
+      - name: Build Docker image
+        run: |
+          docker build -f Infrastructure/Dockerfile -t myapp:ci .
+
+      # Restaurar y correr tests xUnit fuera del contenedor (opcional)
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run xUnit Tests
+        run: dotnet test ./Tests/MyProject.Tests.csproj --logger "trx;LogFileName=test-results.trx"
+
+      # Ejecutar tests dentro del contenedor Docker
+      - name: Run Tests in Docker
+        run: |
+          docker run --rm myapp:ci dotnet test /app/Tests/MyProject.Tests.csproj --logger "trx;LogFileName=test-results.trx"
