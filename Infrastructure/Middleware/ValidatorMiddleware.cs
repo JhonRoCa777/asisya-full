@@ -80,8 +80,7 @@ namespace Infrastructure.Middleware
             var resultProp = task.GetType().GetProperty("Result");
             var result = (FluentValidation.Results.ValidationResult)resultProp!.GetValue(task)!;
 
-            if (!result.IsValid)
-                throw new ValidationException(result.Errors);
+            if (!result.IsValid) throw new ValidationException(result.Errors);
 
             await _next(context);
         }
